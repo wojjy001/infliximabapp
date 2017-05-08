@@ -27,28 +27,39 @@
   set.seed(123456)
 
 # ------------------------------------------------------------------------------
-# Function for estimating individual parameters by minimising the Bayesian objective function value
-	bayesian.ofv <- function(par) {
-		ETA1fit <- log(par[1])  # Bayesian estimated ETA for clearance
-		ETA2fit <- log(par[2])  # Bayesian estimated ETA for volume of the central compartment
-		ETA3fit <- log(par[3])  # Bayesian estimated ETA for intercompartmental clearance
-		ETA4fit <- log(par[4])  # Bayesian estimated ETA for volume of the peripheral compartment
+# Fit individual parameters given the observed concentrations, estimated doses and covariate values
+  bayesian.function <- function(input.bayes.data) {
+  # Initial parameter estimates
+    initial.par <- c(exp(0),exp(0),exp(0),exp(0)) # Population values as initial estimates
+    par <- initial.par
+	# List of observations
+		Yobs.times <- input.bayes.data$time[is.na(input.bayes.data$obs) == FALSE & input.bayes.data$obs != 0]
+		Yobs.values <- input.bayes.data$obs[input.bayes.data$time %in% Yobs.times]
+
+	# Function for estimating individual parameters by minimising the Bayesian objective function value
+		bayesian.ofv <- function(par) {
+			ETA1fit <- log(par[1])  # Bayesian estimated ETA for clearance
+			ETA2fit <- log(par[2])  # Bayesian estimated ETA for volume of the central compartment
+			ETA3fit <- log(par[3])  # Bayesian estimated ETA for intercompartmental clearance
+			ETA4fit <- log(par[4])  # Bayesian estimated ETA for volume of the peripheral compartment
 		# List of ETA values that will be optimised
 		# These will updated and connected to ERR_X terms in the mrgsolve model code
-			input.conc.data$ETA1 <- ETA1fit
-			input.conc.data$ETA2 <- ETA2fit
-			input.conc.data$ETA3 <- ETA3fit
-			input.conc.data$ETA4 <- ETA4fit
+			input.bayes.data$ETA1 <- ETA1fit
+			input.bayes.data$ETA2 <- ETA2fit
+			input.bayes.data$ETA3 <- ETA3fit
+			input.bayes.data$ETA4 <- ETA4fit
 		# Simulate concentration-time profile with nth iteration of ETA values
-			conc.data <- mod %>% mrgsim(data = input.conc.data,carry.out = c(amt,obs)) %>% as.data.frame
+			bayes.data <- mod %>%
+				mrgsim(data = input.bayes.data) %>%
+				as.data.frame
 
-		# If Yobsx was NA, then Yhat needs to be NA too (for calculating the log-likelihood)
-			Yhat <- conc.data$IPRE[is.na(conc.data$PAC) == F]  # Make a Yhat vector based on IPRE in conc.data
+		# Use only corresponding predicted concentrations for calculating the log-likelihood
+			Yhat <- bayes.data$IPRE[bayes.data$time %in% Yobs.times]  # Make a Yhat vector based on IPRE in bayes.data
 		# Posterior component (from the data)
 		# Log densities of residuals
 		# Residual error model, Y = IPRE*(1+ERR), Y = IPRE + IPRE*ERR
 			error <- sqrt(as.matrix(smat(mod)))  # Pull out SIGMA from "mod" - original model code
-			loglikpost <- dnorm(Yobs,mean = Yhat,sd = Yhat*error,log = T)
+			loglikpost <- dnorm(Yobs.values,mean = Yhat,sd = Yhat*error,log = T)
 		# Prior component (from the model)
 			ETA <- c(ETA1fit,ETA2fit,ETA3fit,ETA4fit) # List of Bayesian estimated ETAs
 			ETABSV <- as.matrix(omat(mod)) # PPV for model parameters in "mod" - original model code
@@ -57,23 +68,32 @@
 		# Calculate the combined likelihood
 			OFVBayes <- -1*sum(loglikpost,loglikprior)
 			OFVBayes
-	}
+		}
 
-# Fit individual parameters given the observed concentrations, estimated doses and covariate values
-  bayesian.function <- function(input.data) {
-    # Initial parameter estimates
-      initial.par <- c(exp(0),exp(0),exp(0),exp(0)) # Population values as initial estimates
-      par <- initial.par
-    # Observation - for the posterior
-      Yobs <- input.data$obs[is.na(input.data$obs) == F]  # Most of this will be NA except for the samples
-      input.conc.data <- input.data[input.data$time == 0 | is.na(input.data$obs) == F,]
-    # Optimise the ETA parameters to minimise the OFVBayes
-      resultfit <- optim(par,
-				bayesian.ofv,
-				hessian = TRUE,
-				method = "L-BFGS-B",
-				lower = c(0.001,0.001,0.001,0.001),
-				upper = c(Inf,Inf,Inf,Inf),
-				control = list(parscale = par,factr = 1e7)
-			)
+  # Optimise the ETA parameters to minimise the OFVBayes
+    resultfit <- optim(par,	# initial estimates
+			bayesian.ofv,
+			hessian = TRUE,
+			method = "L-BFGS-B",
+			lower = c(0.001,0.001,0.001,0.001), # lower boundaries for estimates
+			upper = c(Inf,Inf,Inf,Inf),	# upper boundaries for estimates
+			control = list(parscale = par,factr = 1e7)
+		)
   }
+
+# ------------------------------------------------------------------------------
+# Extrapolate covariate values between measured time-points
+# Linear extrapolation for continuous covariates
+	lin.cov.extrap <- function(times,time,last.time,cov) {
+		cov.times <- c(time[is.na(cov) == FALSE & cov != 0],last.time)
+		cov.values <- c(cov[time %in% cov.times],tail(cov[time %in% cov.times],1))
+		cov.func <- approxfun(cov.times,cov.values,method = "linear")
+		cov.func(times)
+	}
+# Constant extrapolation for categorical covariate
+	con.cov.extrap <- function(times,time,last.time,cov) {
+		cov.times <- c(time,last.time)
+		cov.values <- c(cov,tail(cov,1))
+		cov.func <- approxfun(cov.times,cov.values,method = "constant")
+		cov.func(times)
+	}

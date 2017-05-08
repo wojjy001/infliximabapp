@@ -9,8 +9,7 @@ $SET			atol = 1e-8, rtol = 1e-8
 
 $INIT			// Initial conditions for PK compartments
 					CENT = 0,
-					PERI = 0,
-					TUT = 0
+					PERI = 0
 
 $PARAM		// Population parameters
 					POPCL = 0.294,
@@ -56,34 +55,44 @@ $MAIN			// Infusion duration
 						double ADACOV = 1;	// No anti-drug antibodies
 						if (ADA == 1) ADACOV = 1+ADA_CL; // Anti-drug antibodies
 
-					// Individual parameter values
-					double CL = POPCL*pow(WT/70,WT_CL)*pow(ALB/4,ALB_CL)*ADACOV*exp(ETA1);
-					double V1 = POPV1*pow(WT/70,WT_V1)*exp(ETA2);
-					double Q = POPQ*pow(WT/70,WT_Q)*exp(ETA3);
-					double V2 = POPV2*pow(WT/70,WT_V2)*exp(ETA4);
+					// Population parameter values
+					double TVCL = POPCL*pow(WT/70,WT_CL)*pow(ALB/4,ALB_CL)*ADACOV;
+					double TVV1 = POPV1*pow(WT/70,WT_V1);
+					double TVQ = POPQ*pow(WT/70,WT_Q);
+					double TVV2 = POPV2*pow(WT/70,WT_V2);
 
-					// Micro-rate constants
+					// Individual parameter values
+					double CL = TVCL*exp(ETA1);
+					double V1 = TVV1*exp(ETA2);
+					double Q = TVQ*exp(ETA3);
+					double V2 = TVV2*exp(ETA4);
+
+					// Individual micro-rate constants
 					double K10 = CL/V1;
 					double K12 = Q/V1;
 					double K21 = Q/V2;
 
-					// Calculate concentrations in the central compartment
-					double IPRE = CENT/V1;
-					double DV = IPRE*(1+ERRPRO);
-
-$ODE			// Differential equations
+$ODE			// Individual differential equations
 					dxdt_CENT = -K12*CENT +K21*PERI -K10*CENT;
 					dxdt_PERI = K12*CENT -K21*PERI;
 
-					// Plasma concentration
-					double CP = CENT/V1;	// Plasma concentration of the central compartment
+$TABLE		// Calculate concentrations in the central compartment
+					double IPRE = CENT/V1;
+					double DV = IPRE*(1+ERRPRO);
 
-					// Time under target
-					dxdt_TUT = 0;
-					if (SOLVERTIME > 0.08333333 & CP < target) dxdt_TUT = 1;
-
-$CAPTURE	ADA CL V1 Q V2 ETA1 ETA2 ETA3 ETA4 IPRE DV
+$CAPTURE	IPRE DV CL V1 Q V2 WT ALB ADA ETA1 ETA2 ETA3 ETA4
 '
 # Compile the model code
 mod <- mcode("popINFLIX",code)
 	# There is opportunity to simply update model parameters after the model code has been compiled
+
+# Create single line data frame to be repeated x times
+	input.sim.data <- data.frame(
+		ID = 1,
+		time = 0,
+		amt = 0,
+		cmt = 1,
+		evid = 0,
+		rate = 0,
+		obs = as.numeric(NA)
+	)	# data frame to be input into mrgsolve
