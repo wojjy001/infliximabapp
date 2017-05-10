@@ -7,12 +7,12 @@
 header <-
   dashboardHeader(
 		title = "Infliximab",
-		titleWidth = 250
+		titleWidth = 175
 	)	# dashboardHeader
 # Application's sidebar
 sidebar <-
 	dashboardSidebar(
-		width = 250,	# Width of sidebar the same as width of header
+		width = 175,	# Width of sidebar the same as width of header
 		sidebarMenu(
       menuItem("Infliximab Dosing",
 				tabName = "patient-dosing-info",
@@ -74,8 +74,8 @@ body <-
 						actionButton("save","Save",
 						style = "border-color:#FFFFFF; background-color:#00A65A ; color:#FFFFFF"),
 						div(
-							style = "padding-left:15px; display:inline-block",
-							textOutput("saved.patient")
+							style = "padding-left:15px; display:inline-block; color:#EE3B3B",
+							strong(textOutput("saved.patient"))
 						)
 					),	# fluidRow
 					style = "overflow-y:scroll; max-height:210px",
@@ -86,16 +86,7 @@ body <-
 					solidHeader = TRUE
 				),	# box
 				box(
-					title = fluidRow(
-						div(
-							style = "display:inline-block; padding-left:20px",
-							h4("Predicted Infliximab Concentrations")
-						),	# div
-						div(
-							style = "display:inline-block; padding-left:20px",
-							uiOutput("predict.button")
-						)	# div
-					),
+					title = "Predicted Infliximab Concentrations",
 					plotOutput("sim.plot"),
 					fluidRow(
 						column(11,offset = 1,

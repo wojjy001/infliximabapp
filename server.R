@@ -21,9 +21,7 @@ shinyServer(function(input,output,session) {
 	)	# values
 
 	button.values <- reactiveValues(
-		save = 0,
-		predict = 0,
-		predict.once = 0
+		save = 0
 	)	# save.value
 
 	observeEvent(input$save, {
@@ -35,20 +33,6 @@ shinyServer(function(input,output,session) {
 		if (button.values$save < 0) button.values$save <- 0
 		return(button.values)
 	})	# observeEvent
-
-	observeEvent(input$save, {
-		button.values$predict <- button.values$predict + 1
-	})	# observeEvent
-
-	observeEvent(input$next.label | input$next.numeric | input$next.slider | input$next.optim | input$add | input$remove, {
-		button.values$predict <- button.values$predict - 1
-		if (button.values$predict < 0) button.values$predict <- 0
-		return(button.values)
-	})	# observeEvent
-
-	observeEvent(input$predict, {
-		button.values$predict.once <- button.values$predict.once + 1
-	})
 
 	# This reactive expression takes the value for n and df and creates UI elements accordingly
 	input.boxes <- reactive({
@@ -186,7 +170,7 @@ shinyServer(function(input,output,session) {
 	# Set up an input data frame for simulating predicted concentration time-profile
 	# This may or may not be based on Bayes estimates
 	# Uses the saved state of "values$df"
-	Rinput.sim.data <- eventReactive(input$predict, {
+	Rinput.sim.data <- eventReactive(input$save, {
 		input.values <- values$df	# Assign reactive input values to a new object
 		input.values$ada <- as.numeric(levels(input.values$ada))[input.values$ada]
 		last.input.time <- max(input.values$time)	# last time in data frame
@@ -436,21 +420,12 @@ shinyServer(function(input,output,session) {
 
 	output$saved.patient <- renderText({
 		if (button.values$save == 0) {
-			saved.patient.text <- " "
+			saved.patient.text <- "Click 'Save' to predict concentrations."
 		} else {
-			saved.patient.text <- "Patient Data Saved!"
+			saved.patient.text <- "Patient data saved. New results below."
 		}
 		return(saved.patient.text)
 	})	# renderText for saved.patient
-
-	output$predict.button <- renderUI({
-		if (button.values$predict == 0) {
-			actionButton("fakepredict","Predict")
-		} else {
-			actionButton("predict","Predict",
-			style = "border-color:#FFFFFF; background-color:#EE3B3B ; color:#FFFFFF")
-		}
-	})	# renderUI for predict.button
 
 	output$checkbox.pop.typ <- renderUI({
 		if (is.null(Rsim.data())) {
@@ -481,83 +456,81 @@ shinyServer(function(input,output,session) {
 	})	# renderUI for slider.plot.times
 
 	output$sim.plot <- renderPlot({
-		if (button.values$predict.once > 0) {
-			if (is.null(input$plot.times)) {
-				NULL
-			} else {
-			# Call in and rename reactive data frame
-				sim.data <- Rsim.data()
-			# Plot concentrations over time
-				plotobj.pred <- NULL
-				plotobj.pred <- ggplot()
+		if (is.null(input$plot.times)) {
+			NULL
+		} else {
+		# Call in and rename reactive data frame
+			sim.data <- Rsim.data()
+		# Plot concentrations over time
+			plotobj.pred <- NULL
+			plotobj.pred <- ggplot()
+			plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+				data = sim.data[sim.data$ID == 1,],size = 1,
+				colour = "#3C8DBC")	# shinyblue
+			if (input$pop.typ == TRUE) {
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-					data = sim.data[sim.data$ID == 1,],size = 1,
+					data = sim.data[sim.data$ID == 2,],
+					linetype = "dashed",size = 1,
 					colour = "#3C8DBC")	# shinyblue
+			}
+			if (input$label_dose == TRUE) {
+				label.data <- Rlabel.data()
+				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+					data = label.data[label.data$ID == 1,],size = 1,
+					colour = "#EE3B3B")	# firebrick4
 				if (input$pop.typ == TRUE) {
 					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-						data = sim.data[sim.data$ID == 2,],
+						data = label.data[label.data$ID == 2,],
 						linetype = "dashed",size = 1,
-						colour = "#3C8DBC")	# shinyblue
-				}
-				if (input$label_dose == TRUE) {
-					label.data <- Rlabel.data()
-					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-						data = label.data[label.data$ID == 1,],size = 1,
 						colour = "#EE3B3B")	# firebrick4
-					if (input$pop.typ == TRUE) {
-						plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-							data = label.data[label.data$ID == 2,],
-							linetype = "dashed",size = 1,
-							colour = "#EE3B3B")	# firebrick4
-					}
 				}
-				if (input$numeric_dose == TRUE) {
-					numeric.data <- Rnumeric.data()
+			}
+			if (input$numeric_dose == TRUE) {
+				numeric.data <- Rnumeric.data()
+				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+					data = numeric.data[numeric.data$ID == 1,],size = 1,
+					colour = "#F39C12")	# darkorange3
+				if (input$pop.typ == TRUE) {
 					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-						data = numeric.data[numeric.data$ID == 1,],size = 1,
+						data = numeric.data[numeric.data$ID == 2,],
+						linetype = "dashed",size = 1,
 						colour = "#F39C12")	# darkorange3
-					if (input$pop.typ == TRUE) {
-						plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-							data = numeric.data[numeric.data$ID == 2,],
-							linetype = "dashed",size = 1,
-							colour = "#F39C12")	# darkorange3
-					}
 				}
-				if (input$slider_dose == TRUE) {
-					slider.data <- Rslider.data()
+			}
+			if (input$slider_dose == TRUE) {
+				slider.data <- Rslider.data()
+				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+					data = slider.data[slider.data$ID == 1,],size = 1,
+					colour = "#00A65A")	# springgreen4
+				if (input$pop.typ == TRUE) {
 					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-						data = slider.data[slider.data$ID == 1,],size = 1,
+						data = slider.data[slider.data$ID == 2,],
+						linetype = "dashed",size = 1,
 						colour = "#00A65A")	# springgreen4
-					if (input$pop.typ == TRUE) {
-						plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-							data = slider.data[slider.data$ID == 2,],
-							linetype = "dashed",size = 1,
-							colour = "#00A65A")	# springgreen4
-					}
 				}
-				if (input$optim_dose == TRUE) {
-					optim.data <- Roptim.data()
+			}
+			if (input$optim_dose == TRUE) {
+				optim.data <- Roptim.data()
+				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+					data = optim.data[optim.data$ID == 1,],size = 1,
+					colour = "#605CA8")	# darkviolet
+				if (input$pop.typ == TRUE) {
 					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-						data = optim.data[optim.data$ID == 1,],size = 1,
+						data = optim.data[optim.data$ID == 2,],
+						linetype = "dashed",size = 1,
 						colour = "#605CA8")	# darkviolet
-					if (input$pop.typ == TRUE) {
-						plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-							data = optim.data[optim.data$ID == 2,],
-							linetype = "dashed",size = 1,
-							colour = "#605CA8")	# darkviolet
-					}
 				}
-				plotobj.pred <- plotobj.pred + geom_point(aes(x = time,y = obs),
-					data = values$df[is.na(values$df$obs) == FALSE,],size = 4)
-				plotobj.pred <- plotobj.pred + geom_hline(aes(yintercept = input$target.trough),
-					linetype = "dashed")
-				plotobj.pred <- plotobj.pred + scale_y_log10("Infliximab Concentration (mg/L)\n")
-				plotobj.pred <- plotobj.pred + scale_x_continuous("\nTime since first dose (days)",
-					breaks = seq(from = 0,to = max(input$plot.times),by = 14),
-					lim = input$plot.times)
-				suppressWarnings(print(plotobj.pred))
-			}	# if
-		} # if
+			}
+			plotobj.pred <- plotobj.pred + geom_point(aes(x = time,y = obs),
+				data = values$df[is.na(values$df$obs) == FALSE,],size = 4)
+			plotobj.pred <- plotobj.pred + geom_hline(aes(yintercept = input$target.trough),
+				linetype = "dashed")
+			plotobj.pred <- plotobj.pred + scale_y_log10("Infliximab Concentration (mg/L)\n")
+			plotobj.pred <- plotobj.pred + scale_x_continuous("\nTime since first dose (days)",
+				breaks = seq(from = 0,to = max(input$plot.times),by = 14),
+				lim = input$plot.times)
+			suppressWarnings(print(plotobj.pred))
+		}	# if
 	})	# renderPlot
 
 	output$label.amt <- renderText({
