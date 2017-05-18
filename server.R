@@ -8,31 +8,20 @@ shinyServer(function(input,output,session) {
 	###########
 	# Set up reactiveValues to keep track of the number of input boxes I have (n)
 	# Also keep track of what is in my input.boxes (df)
+	# Store and control the state of the "save" button
+	# Store and control the state of the "pop_ci" checkboxInput
 	values <- reactiveValues(
-		n = 4,
+		n = 6,
 		df = data.frame(
-			"time" = c(0,14,42,98),
-			"wt" = c(70,70,70,70),
-			"alb" = c(4,4,4,4),
-			"ada" = c(0,0,0,0),
-			"amt" = c(350,350,350,NA),
-			"obs" = c(NA,NA,NA,5)
-		)	# df
-	)	# values
-
-	button.values <- reactiveValues(
+			"time" = c(0,14,42,98,154,210),
+			"wt" = c(70,70,70,70,70,70),
+			"alb" = c(4,4,4,4,4,4),
+			"ada" = c(0,0,0,0,0,0),
+			"amt" = c(350,350,350,350,350,350),
+			"obs" = c(NA,NA,NA,NA,NA,NA)
+		),	# df
 		save = 0
-	)	# save.value
-
-	observeEvent(input$save, {
-		button.values$save <- button.values$save + 1
-	})	# observeEvent
-
-	observeEvent(input$next.label | input$next.numeric | input$next.slider | input$next.optim | input$add | input$remove, {
-		button.values$save <- button.values$save - 1
-		if (button.values$save < 0) button.values$save <- 0
-		return(button.values)
-	})	# observeEvent
+	)	# values
 
 	# This reactive expression takes the value for n and df and creates UI elements accordingly
 	input.boxes <- reactive({
@@ -47,7 +36,7 @@ shinyServer(function(input,output,session) {
 				if (mgkg.dose.i.text == "NA mg/kg") mgkg.dose.i.text <- " "
 				fluidRow(
 					column(1,
-						style = "width:200px;",
+						style = "width:200px",
 						numericInput(paste0("one",i),
 							label = NA,
 							value = df[i,1]
@@ -83,8 +72,8 @@ shinyServer(function(input,output,session) {
 						)	# input$five-i
 					),	# column
 					column(1,
-						style = "width:100px;",
-						h5(strong(mgkg.dose.i.text))
+						style = "width:100px; font-size:16px; color:#000000",
+						strong(mgkg.dose.i.text)
 					),
 					column(2,
 						style = "width:200px;",
@@ -97,26 +86,6 @@ shinyServer(function(input,output,session) {
 			})	# llply
 		} # if
 	})	# input.boxes
-
-	observeEvent(input$next.label, {
-		n <- values$n
-		updateNumericInput(session,inputId = paste0("five",n),value = round(Rlabel.data()$amt[1]))
-	})	# observeEvent
-
-	observeEvent(input$next.numeric, {
-		n <- values$n
-		updateNumericInput(session,inputId = paste0("five",n),value = round(Rnumeric.data()$amt[1]))
-	})	# observeEvent
-
-	observeEvent(input$next.slider, {
-		n <- values$n
-		updateNumericInput(session,inputId = paste0("five",n),value = round(Rslider.data()$amt[1]))
-	})	# observeEvent
-
-	observeEvent(input$next.optim, {
-		n <- values$n
-		updateNumericInput(session,inputId = paste0("five",n),value = round(Roptim.data()$amt[1]))
-	})	# observeEvent
 
 	# Use observeEvent to determine if user wants to add or remove a row of boxes
 	# Also use to save a current state of input.boxes for use
@@ -167,6 +136,14 @@ shinyServer(function(input,output,session) {
 		return(values$df)
 	})	# observeEvent for save
 
+	observeEvent(input$save, {
+		values$save <- 1
+	})	# observeEvent
+
+	observeEvent(input$next.label | input$next.numeric | input$next.slider | input$next.optim | input$add | input$remove, {
+		values$save <- 0
+	})	# observeEvent
+
 	# Set up an input data frame for simulating predicted concentration time-profile
 	# This may or may not be based on Bayes estimates
 	# Uses the saved state of "values$df"
@@ -204,13 +181,12 @@ shinyServer(function(input,output,session) {
 	# Create population typical data frame
 		pred.sim.data <- input.sim.data
 		pred.sim.data$ID <- 2
-		input.sim.data <- rbind(pred.sim.data,input.sim.data)
-
-	# Preset ETA values to zero
-		input.sim.data$ETA1 <- 0
-		input.sim.data$ETA2 <- 0
-		input.sim.data$ETA3 <- 0
-		input.sim.data$ETA4 <- 0
+		input.sim.data <- rbind(input.sim.data,pred.sim.data)
+		# Preset ETA values for our individual and population typical individual to zero
+			input.sim.data$ETA1 <- 0
+			input.sim.data$ETA2 <- 0
+			input.sim.data$ETA3 <- 0
+			input.sim.data$ETA4 <- 0
 
 	# Create a Bayesian estimation flag - initially not performed
 		input.sim.data$bayes <- 0
@@ -231,7 +207,31 @@ shinyServer(function(input,output,session) {
 		}
 		input.sim.data <- input.sim.data[with(input.sim.data,order(input.sim.data["ID"])),]
 		return(input.sim.data)
-	})	# observeEvent for Rinput.sim.data
+	})	# eventReactive for Rinput.sim.data
+
+	# Create a population variability data frame
+	Rinput.var.sim.data <- reactive({
+		if (input$pop_ci == TRUE) {
+			times <- Rinput.sim.data()[Rinput.sim.data()$ID == 1,]$time
+			input.var.sim.data <- lapply(Rinput.sim.data()[Rinput.sim.data()$ID == 1,],rep.int,times = nsim) %>%
+				as.data.frame
+			input.var.sim.data <- input.var.sim.data[,-c(11:14)]
+			ID.seq <- seq(from = 3,to = nsim + 2,by = 1)
+			ID.seq.rep <- rep(ID.seq,times = length(times)) %>% sort
+			input.var.sim.data$ID <- ID.seq.rep
+			# Simulate ETA values for each individual
+				eta.data <- data.frame(ID = ID.seq,
+					ETA1 = rnorm(nsim,mean = 0,sd = ETABSV[1]),
+					ETA2 = rnorm(nsim,mean = 0,sd = ETABSV[2]),
+					ETA3 = rnorm(nsim,mean = 0,sd = ETABSV[3]),
+					ETA4 = rnorm(nsim,mean = 0,sd = ETABSV[4])
+				)
+			input.var.sim.data <- merge(input.var.sim.data,eta.data,by = c("ID"),all = T)
+		} else {
+			input.var.sim.data <- NULL
+		}
+		return(input.var.sim.data)
+	})	# eventReactve for Rinput.var.sim.data
 
 	# Simulate predicted concentrations
 	Rsim.data <- reactive({
@@ -241,14 +241,26 @@ shinyServer(function(input,output,session) {
 		return(sim.data)
 	})	# reactive for Rsim.data
 
+	# Simulate predicted variability concentrations
+	Rvar.sim.data <- reactive({
+		if (is.null(Rinput.var.sim.data()) == FALSE) {
+			var.sim.data <- mod %>%
+				mrgsim(data = Rinput.var.sim.data(),carry.out = c("amt","bayes","cmt")) %>%
+				as.data.frame
+		} else {
+			var.sim.data <- NULL
+		}
+		return(var.sim.data)
+	})	# reactive for Rvar.sim.data
+
 	# Create generic input data frame that collects previous information
 	# Will be used for simulating or calculating the "next dose"
 	Rinput.next.dose <- reactive({
-		input.sim.data <- Rinput.sim.data()
+		input.next.dose <- rbind(Rinput.sim.data(),Rinput.var.sim.data())
 	# Last covariate values are carried forward for predictions
-		last.time <- tail(input.sim.data$time,1)
+		last.time <- tail(input.next.dose$time,1)
 		next.times <- seq(from = last.time,to = last.time + 56,by = 1)
-		input.next.dose <- input.sim.data[input.sim.data$time == last.time,]
+		input.next.dose <- input.next.dose[input.next.dose$time == last.time,]
 		input.next.dose <- lapply(input.next.dose,rep.int,times = length(next.times)) %>%
 			as.data.frame
 		input.next.dose <- input.next.dose[with(input.next.dose,order(input.next.dose["ID"])),]
@@ -258,39 +270,25 @@ shinyServer(function(input,output,session) {
 
 	# Reactive model file that updates compartment initial conditions
 	Rmod <- reactive({
-		sim.data <- Rsim.data()
-		last.time <- tail(sim.data$time,1)
+		comb.data <- rbind(Rsim.data(),Rvar.sim.data())
+		ID.length <- length(unique(comb.data$ID))
+		last.time <- tail(comb.data$time,1)
 	#	Collect previous amounts in compartments
 	# For the individual and population typical
 		prev.CENT <- c(0,0)
 		prev.PERI <- c(0,0)
-		mod2 <- llply(seq_len(2), function(i) {
-			prev.CENT[i] <- sim.data$CENT[sim.data$time == last.time & sim.data$ID == i]
-			prev.PERI[i] <- sim.data$PERI[sim.data$time == last.time & sim.data$ID == i]
+		mod2 <- llply(seq_len(ID.length), function(i) {
+			prev.CENT[i] <- comb.data$CENT[comb.data$time == last.time & comb.data$ID == i]
+			prev.PERI[i] <- comb.data$PERI[comb.data$time == last.time & comb.data$ID == i]
 			mod2 <- mod %>% init(CENT = prev.CENT[i],PERI = prev.PERI[i])
 			mod2
 		})	# llply
 	})	# reactive for Rmod
 
-	observeEvent(input$save | input$next.slider | input$next.optim | input$next.numeric, {
-		updateCheckboxInput(session,inputId = "label_dose",value = FALSE)
-	})	# observeEvent for resetting checkboxInput for label_dose
-
-	observeEvent(input$save | input$next.label | input$next.optim | input$next.slider, {
-		updateCheckboxInput(session,inputId = "numeric_dose",value = FALSE)
-	})	# observeEvent for resetting checkboxInput for numeric_dose
-
-	observeEvent(input$save | input$next.label | input$next.optim | input$next.numeric, {
-		updateCheckboxInput(session,inputId = "slider_dose",value = FALSE)
-	})	# observeEvent for resetting checkboxInput for slider_dose
-
-	observeEvent(input$save | input$next.label | input$next.slider | input$next.numeric, {
-		updateCheckboxInput(session,inputId = "optim_dose",value = FALSE)
-	})	# observeEvent for resetting checkboxInput for optim_dose
-
 	# Simulate next dose when given 5 mg/kg (56-day interval)
-	Rlabel.data <- eventReactive(input$label_dose == TRUE, {
+	Rlabel.data <- eventReactive(input$label_dose == TRUE | input$pop_ci == TRUE, {
 		input.label.dose <- Rinput.next.dose()
+		ID.length <- length(unique(input.label.dose$ID))
 		mod2 <- Rmod()
 	# Add in label dosing information to input data frame
 		next.label.dose <- 5*input.label.dose$WT[1]	# next 5 mg/kg dose
@@ -299,7 +297,7 @@ shinyServer(function(input,output,session) {
 		input.label.dose$rate[input.label.dose$time == next.label.dose.time] <- -2
 		input.label.dose$evid[input.label.dose$time == next.label.dose.time] <- 1
 	# Simulate next 56 days given label dose
-		label.data <- ldply(seq_len(2), function(i) {
+		label.data <- ldply(seq_len(ID.length), function(i) {
 			label.data <- mod2[[i]] %>%
 				mrgsim(data = input.label.dose[input.label.dose$ID == i,],
 				carry.out = c("amt","bayes","cmt")) %>%
@@ -309,8 +307,9 @@ shinyServer(function(input,output,session) {
 	})	# eventReactive for Rlabel.data
 
 	# Simulate next dose when given a slider nominated dose (56 day-interval)
-	Rslider.data <- eventReactive(input$slider_dose == TRUE | input$vari.dose, {
+	Rslider.data <- eventReactive(input$slider_dose == TRUE | input$vari.dose | input$pop_ci == TRUE, {
 		input.slider.dose <- Rinput.next.dose()
+		ID.length <- length(unique(input.slider.dose$ID))
 		mod2 <- Rmod()
 		if (is.null(input$vari.dose)) {
 			NULL
@@ -322,7 +321,7 @@ shinyServer(function(input,output,session) {
 			input.slider.dose$rate[input.slider.dose$time == next.slider.dose.time] <- -2
 			input.slider.dose$evid[input.slider.dose$time == next.slider.dose.time] <- 1
 		# Simulate next 56 days given slider dose
-			slider.data <- ldply(seq_len(2), function(i) {
+			slider.data <- ldply(seq_len(ID.length), function(i) {
 				slider.data <- mod2[[i]] %>%
 					mrgsim(data = input.slider.dose[input.slider.dose$ID == i,],
 					carry.out = c("amt","bayes","cmt")) %>%
@@ -333,8 +332,9 @@ shinyServer(function(input,output,session) {
 	})	# reactive for Rslider.data
 
 	# Simulate next dose when given a numeric nominated dose (56 day-interval)
-	Rnumeric.data <- eventReactive(input$numeric_dose == TRUE | input$vari.num.dose, {
+	Rnumeric.data <- eventReactive(input$numeric_dose == TRUE | input$vari.num.dose | input$pop_ci == TRUE, {
 		input.numeric.dose <- Rinput.next.dose()
+		ID.length <- length(unique(input.numeric.dose$ID))
 		mod2 <- Rmod()
 		if (is.null(input$vari.num.dose)) {
 			NULL
@@ -346,7 +346,7 @@ shinyServer(function(input,output,session) {
 			input.numeric.dose$rate[input.numeric.dose$time == next.numeric.dose.time] <- -2
 			input.numeric.dose$evid[input.numeric.dose$time == next.numeric.dose.time] <- 1
 		# Simulate next 56 days given numeric dose
-			numeric.data <- ldply(seq_len(2), function(i) {
+			numeric.data <- ldply(seq_len(ID.length), function(i) {
 				numeric.data <- mod2[[i]] %>%
 					mrgsim(data = input.numeric.dose[input.numeric.dose$ID == i,],
 					carry.out = c("amt","bayes","cmt")) %>%
@@ -358,8 +358,9 @@ shinyServer(function(input,output,session) {
 
 	# Find the doses that maximise the likelihood of trough concentrations being the target
 	# Simulate next dose when given the optimised dose (56-day interval)
-	Roptim.data <- eventReactive(input$optim_dose == TRUE | input$target.trough, {
+	Roptim.data <- eventReactive(input$optim_dose == TRUE | input$target.trough | input$pop_ci == TRUE, {
 		input.optim.dose <- Rinput.next.dose()
+		ID.length <- length(unique(input.optim.dose$ID))
 		mod2 <- Rmod()
 	# Add in slider dosing information to input data frame
 		next.optim.dose.time <- input.optim.dose$time[1]
@@ -401,7 +402,7 @@ shinyServer(function(input,output,session) {
 
 	# Simulate next 56 days given optimised dose
 		input.optim.dose$amt[input.optim.dose$time == next.optim.dose.time] <- next.optim.dose
-		optim.data <- ldply(seq_len(2), function(i) {
+		optim.data <- ldply(seq_len(ID.length), function(i) {
 			optim.data <- mod2[[i]] %>%
 				mrgsim(data = input.optim.dose[input.optim.dose$ID == i,],
 				carry.out = c("amt","bayes","cmt")) %>%
@@ -409,6 +410,48 @@ shinyServer(function(input,output,session) {
 		}) # llply
 		return(optim.data)
 	})	# reactive for Roptim.data
+
+	# Populate the last "infliximab amount" box with the chosen dose value
+	observeEvent(input$next.label, {
+		n <- values$n
+		updateNumericInput(session,inputId = paste0("five",n),value = round(Rlabel.data()$amt[1]))
+	})	# observeEvent
+
+	observeEvent(input$next.numeric, {
+		n <- values$n
+		updateNumericInput(session,inputId = paste0("five",n),value = round(Rnumeric.data()$amt[1]))
+	})	# observeEvent
+
+	observeEvent(input$next.slider, {
+		n <- values$n
+		updateNumericInput(session,inputId = paste0("five",n),value = round(Rslider.data()$amt[1]))
+	})	# observeEvent
+
+	observeEvent(input$next.optim, {
+		n <- values$n
+		updateNumericInput(session,inputId = paste0("five",n),value = round(Roptim.data()$amt[1]))
+	})	# observeEvent
+
+	# Reset the checkboxInput values if other doses are chosen or the "save" button is pressed
+	observeEvent(input$save | input$next.slider | input$next.optim | input$next.numeric, {
+		updateCheckboxInput(session,inputId = "label_dose",value = FALSE)
+	})	# observeEvent for resetting checkboxInput for label_dose
+
+	observeEvent(input$save | input$next.label | input$next.optim | input$next.slider, {
+		updateCheckboxInput(session,inputId = "numeric_dose",value = FALSE)
+	})	# observeEvent for resetting checkboxInput for numeric_dose
+
+	observeEvent(input$save | input$next.label | input$next.optim | input$next.numeric, {
+		updateCheckboxInput(session,inputId = "slider_dose",value = FALSE)
+	})	# observeEvent for resetting checkboxInput for slider_dose
+
+	observeEvent(input$save | input$next.label | input$next.slider | input$next.numeric, {
+		updateCheckboxInput(session,inputId = "optim_dose",value = FALSE)
+	})	# observeEvent for resetting checkboxInput for optim_dose
+
+	observeEvent(input$save, {
+		updateCheckboxInput(session,inputId = "pop_ci",value = FALSE)
+	})	# observeEvent for resetting checkboxInput for pop_ci
 
 	############
 	##_OUTPUT_##
@@ -418,41 +461,40 @@ shinyServer(function(input,output,session) {
 		input.boxes()
 	})	# renderUI for input.boxes
 
-	output$saved.patient <- renderText({
-		if (button.values$save == 0) {
-			saved.patient.text <- "Click 'Save' to predict concentrations."
+	output$saved.patient <- renderUI({
+		if (values$save == 0) {
+			div(
+				style = "color:#EE3B3B",
+				strong("Click 'Save' to predict concentrations.")
+			)
 		} else {
-			saved.patient.text <- "Patient data saved. New results below."
+			div(
+				style = "color:#00A65A",
+				strong("Patient data saved. New results below.")
+			)
 		}
-		return(saved.patient.text)
-	})	# renderText for saved.patient
+	})	# renderUI for saved.patient
 
-	output$checkbox.pop.typ <- renderUI({
+	output$slider.plot.times <- renderUI({
 		if (is.null(Rsim.data())) {
 			NULL
 		} else {
-			checkboxInput("pop.typ",
-			"Show population typical profile for this individual",
-			value = FALSE)
+			max.time <- max(Rsim.data()$time)
+			if(input$label_dose == FALSE & input$optim_dose == FALSE & input$slider_dose == FALSE & input$numeric_dose == FALSE) {
+				max <- max.time
+				value <- c(0,max.time)
+			} else {
+				max <- max.time + 56
+				value <- c(0,max.time + 56)
+			}
+			sliderInput("plot.times",
+				"Plot concentrations between specified times",
+				min = 0,
+				max = max,
+				value = value,
+				step = 14
+			)	# sliderInput
 		}
-	})	# renderUI for checkbox.pop.typ
-
-	output$slider.plot.times <- renderUI({
-		max.time <- max(Rsim.data()$time)
-		if(input$label_dose == FALSE & input$optim_dose == FALSE & input$slider_dose == FALSE & input$numeric_dose == FALSE) {
-			max <- max.time
-			value <- c(0,max.time)
-		} else {
-			max <- max.time + 56
-			value <- c(0,max.time + 56)
-		}
-		sliderInput("plot.times",
-			"Plot concentrations between times",
-			min = 0,
-			max = max,
-			value = value,
-			step = 7
-		)	# sliderInput
 	})	# renderUI for slider.plot.times
 
 	output$sim.plot <- renderPlot({
@@ -461,28 +503,37 @@ shinyServer(function(input,output,session) {
 		} else {
 		# Call in and rename reactive data frame
 			sim.data <- Rsim.data()
+			var.sim.data <- Rvar.sim.data()
 		# Plot concentrations over time
 			plotobj.pred <- NULL
 			plotobj.pred <- ggplot()
 			plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 				data = sim.data[sim.data$ID == 1,],size = 1,
 				colour = "#3C8DBC")	# shinyblue
-			if (input$pop.typ == TRUE) {
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = sim.data[sim.data$ID == 2,],
 					linetype = "dashed",size = 1,
 					colour = "#3C8DBC")	# shinyblue
+			if (input$pop_ci == TRUE) {
+				plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
+					data = var.sim.data,
+					fun.ymin = "CI95lo",fun.ymax = "CI95hi",
+					geom = "ribbon",fill = "#3C8DBC",alpha = 0.3)
 			}
 			if (input$label_dose == TRUE) {
 				label.data <- Rlabel.data()
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = label.data[label.data$ID == 1,],size = 1,
 					colour = "#EE3B3B")	# firebrick4
-				if (input$pop.typ == TRUE) {
-					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-						data = label.data[label.data$ID == 2,],
-						linetype = "dashed",size = 1,
-						colour = "#EE3B3B")	# firebrick4
+				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+					data = label.data[label.data$ID == 2,],
+					linetype = "dashed",size = 1,
+					colour = "#EE3B3B")	# firebrick4
+				if (input$pop_ci == TRUE) {
+					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
+						data = label.data[label.data$ID > 2,],
+						fun.ymin = "CI95lo",fun.ymax = "CI95hi",
+						geom = "ribbon",fill = "#EE3B3B",alpha = 0.3)
 				}
 			}
 			if (input$numeric_dose == TRUE) {
@@ -490,11 +541,15 @@ shinyServer(function(input,output,session) {
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = numeric.data[numeric.data$ID == 1,],size = 1,
 					colour = "#F39C12")	# darkorange3
-				if (input$pop.typ == TRUE) {
-					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-						data = numeric.data[numeric.data$ID == 2,],
-						linetype = "dashed",size = 1,
-						colour = "#F39C12")	# darkorange3
+				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+					data = numeric.data[numeric.data$ID == 2,],
+					linetype = "dashed",size = 1,
+					colour = "#F39C12")	# darkorange3
+				if (input$pop_ci == TRUE) {
+					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
+						data = numeric.data[numeric.data$ID > 2,],
+						fun.ymin = "CI95lo",fun.ymax = "CI95hi",
+						geom = "ribbon",fill = "#F39C12",alpha = 0.3)
 				}
 			}
 			if (input$slider_dose == TRUE) {
@@ -502,11 +557,15 @@ shinyServer(function(input,output,session) {
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = slider.data[slider.data$ID == 1,],size = 1,
 					colour = "#00A65A")	# springgreen4
-				if (input$pop.typ == TRUE) {
-					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-						data = slider.data[slider.data$ID == 2,],
-						linetype = "dashed",size = 1,
-						colour = "#00A65A")	# springgreen4
+				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+					data = slider.data[slider.data$ID == 2,],
+					linetype = "dashed",size = 1,
+					colour = "#00A65A")	# springgreen4
+				if (input$pop_ci == TRUE) {
+					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
+						data = slider.data[slider.data$ID > 2,],
+						fun.ymin = "CI95lo",fun.ymax = "CI95hi",
+						geom = "ribbon",fill = "#00A65A",alpha = 0.3)
 				}
 			}
 			if (input$optim_dose == TRUE) {
@@ -514,11 +573,15 @@ shinyServer(function(input,output,session) {
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = optim.data[optim.data$ID == 1,],size = 1,
 					colour = "#605CA8")	# darkviolet
-				if (input$pop.typ == TRUE) {
-					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-						data = optim.data[optim.data$ID == 2,],
-						linetype = "dashed",size = 1,
-						colour = "#605CA8")	# darkviolet
+				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+					data = optim.data[optim.data$ID == 2,],
+					linetype = "dashed",size = 1,
+					colour = "#605CA8")	# darkviolet
+				if (input$pop_ci == TRUE) {
+					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
+						data = optim.data[optim.data$ID > 2,],
+						fun.ymin = "CI95lo",fun.ymax = "CI95hi",
+						geom = "ribbon",fill = "#605CA8",alpha = 0.3)
 				}
 			}
 			plotobj.pred <- plotobj.pred + geom_point(aes(x = time,y = obs),

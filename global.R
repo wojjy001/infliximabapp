@@ -16,10 +16,15 @@
   theme_bw2 <- theme_set(theme_bw(base_size = 16))
 # Source model code
   source("model.R")
+	# Pull out the OMEGAs from "model.R" and convert to SDs
+		ETABSV <- as.matrix(omat(mod)) # PPV for model parameters in "mod" - original model code
+		ETABSV <- sqrt(c(ETABSV[1,1],ETABSV[2,2],ETABSV[3,3],ETABSV[4,4]))
+	# Pull out SIGMA from "mod" - original model code
+		error <- sqrt(as.matrix(smat(mod)))
 
 # ------------------------------------------------------------------------------
 # Set the number of individuals that make up the 95% confidence intervals
-  n <- 1000
+  nsim <- 100
 # 95% confidence interval functions
   CI95lo <- function(x) quantile(x,probs = 0.025)
   CI95hi <- function(x) quantile(x,probs = 0.975)
@@ -58,12 +63,9 @@
 		# Posterior component (from the data)
 		# Log densities of residuals
 		# Residual error model, Y = IPRE*(1+ERR), Y = IPRE + IPRE*ERR
-			error <- sqrt(as.matrix(smat(mod)))  # Pull out SIGMA from "mod" - original model code
 			loglikpost <- dnorm(Yobs.values,mean = Yhat,sd = Yhat*error,log = T)
 		# Prior component (from the model)
 			ETA <- c(ETA1fit,ETA2fit,ETA3fit,ETA4fit) # List of Bayesian estimated ETAs
-			ETABSV <- as.matrix(omat(mod)) # PPV for model parameters in "mod" - original model code
-			ETABSV <- sqrt(c(ETABSV[1,1],ETABSV[2,2],ETABSV[3,3],ETABSV[4,4]))  # Pull out the OMEGAs and convert to SDs
 			loglikprior <- dnorm(ETA,mean = 0,sd = ETABSV,log = T)
 		# Calculate the combined likelihood
 			OFVBayes <- -1*sum(loglikpost,loglikprior)
