@@ -6,12 +6,13 @@
 # Application's header
 header <-
   dashboardHeader(
-		title = "Infliximab",
-		titleWidth = 175
+		title = "Individualise Infliximab Maintenance Dosing",
+		titleWidth = 400
 	)	# dashboardHeader
 # Application's sidebar
 sidebar <-
 	dashboardSidebar(
+		disable = TRUE,
 		width = 175,	# Width of sidebar the same as width of header
 		sidebarMenu(
       menuItem("Infliximab Dosing",
@@ -21,20 +22,21 @@ sidebar <-
 			menuItem("Resources",
 				tabName = "packages",
 				icon = icon("question-circle")
-			)#,
-			# actionButton("console","Debug console")
+			)
 		)	# sidebarMenu
 	) # dashboardSidebar
 # Application's body
 body <-
 	dashboardBody(
 		useShinyjs(),
-		tags$style(HTML(".form-control, .selectize-input, selectize-dropdown {color:#000000; font-size:16px}")),	# font colour of numeric- and selectInput
+		tags$style(HTML(".form-control, .selectize-input, selectize-dropdown {color:#000000; font-size:18px}")),	# font colour of numeric- and selectInput
 		tags$style(HTML(".js-irs-0 .irs-single, .js-irs-0 .irs-bar, .js-irs-0 .irs-bar-edge {background:#00A65A; border:#00A65A}")),	# green slider for slider_dose
-		tags$style(HTML(".irs-grid-text {color:#000000; font-size:12px}")),	# black markings on sliders
+		tags$style(HTML(".irs-grid-text, .irs-min, .irs-max {color:#000000; font-size:16px}")),	# black markings on sliders
+		tags$style(HTML(".irs-single, .irs-from, .irs-to {font-size:16px}")),
     tabItems(
 			tabItem(tabName = "patient-dosing-info",
 				style = "overflow-y:scroll",
+				# actionButton("console","Debug Console"),
 				box(
 					title = fluidRow(
 						div(
@@ -63,7 +65,7 @@ body <-
 								"Infliximab amount (mg)"
 							), # div
 							div(
-								style = "display:inline-block; width:270px; padding-left:100px; font-size:18px",
+								style = "display:inline-block; width:320px; padding-left:150px; font-size:18px",
 								"Concentration (mg/L)"
 							)	# div
 						)	# div
@@ -72,13 +74,13 @@ body <-
 					footer = fluidRow(
 						style = "padding-left:15px; display:inline-block",
 						actionButton("add",strong("Add"),
-						style = "border-color:#FFFFFF; background-color:#00A65A; color:#FFFFFF; font-size:16px"),
+						style = "border-color:#FFFFFF; background-color:#00A65A; color:#FFFFFF; font-size:18px"),
 						actionButton("remove",strong("Remove"),
-						style = "border-color:#FFFFFF; background-color:#00A65A; color:#FFFFFF; font-size:16px"),
+						style = "border-color:#FFFFFF; background-color:#00A65A; color:#FFFFFF; font-size:18px"),
 						actionButton("save",strong("Save"),
-						style = "border-color:#FFFFFF; background-color:#00A65A; color:#FFFFFF; font-size:16px"),
+						style = "border-color:#FFFFFF; background-color:#00A65A; color:#FFFFFF; font-size:18px"),
 						div(
-							style = "padding-left:15px; display:inline-block; font-size:16px",
+							style = "padding-left:15px; display:inline-block; font-size:18px",
 							uiOutput("saved.patient")
 						)	# div
 					),	# fluidRow
@@ -92,7 +94,7 @@ body <-
 				box(
 					title = strong("Predicted Infliximab Concentrations",style = "font-size:20px"),
 					div(
-					 	style = "font-size:16px; color:#000000",
+					 	style = "font-size:18px; color:#000000",
 						align = "center",
 					 	fluidRow(
 						 	column(4,
@@ -113,7 +115,7 @@ body <-
 					plotOutput("sim.plot",height = 600),
 					fluidRow(
 						column(11,offset = 1,
-							style = "font-size:16px; color:#000000",
+							style = "font-size:18px; color:#000000",
 							uiOutput("slider.plot.times")
 						) # column
 					),	# fluidRow
@@ -134,30 +136,30 @@ body <-
 						width = 200
 					),	# numericInput
 					hr(),
-					p(strong("Next dose recommendation:",style = "font-size:16px")),
+					p(strong("Next dose recommendation:",style = "font-size:18px")),
 					checkboxInput("label_dose",
-						strong("5 mg/kg (label recommended)",style = "color:#EE3B3B; font-size:16px"),
+						strong("5 mg/kg (label recommended)",style = "color:#EE3B3B; font-size:18px"),
 						value = FALSE
 					),	# checkboxInput
 					conditionalPanel(condition = "input.label_dose",
 						fluidRow(
 							column(5,
-								style = "color:#EE3B3B; padding-top:6px; font-size:16px",
+								style = "color:#EE3B3B; padding-top:6px; font-size:18px",
 								strong(textOutput("label.amt"))
 							),	# column
 							column(7,
-								actionButton("next.label",strong("Administer label dose"),style = "color:#FFFFFF; border-color:#FFFFFF; background-color:#EE3B3B; width:200px; text-align:center; font-size:16px")
+								actionButton("next.label",strong("Administer this dose"),style = "color:#FFFFFF; border-color:#FFFFFF; background-color:#EE3B3B; width:200px; text-align:center; font-size:18px")
 							)	# column
 						)	# fluidRow
 					),	# conditionalPanel
 					checkboxInput("numeric_dose",
-						strong("Explore range of amounts",style = "color:#F39C12; font-size:16px"),
+						strong("Explore range of amounts",style = "color:#F39C12; font-size:18px"),
 						value = FALSE
 					),	# checkboxInput
 					conditionalPanel(condition = "input.numeric_dose",
 						fluidRow(
 							column(5,
-								style = "color:#F39C12; font-size:16px",
+								style = "color:#F39C12; font-size:18px",
 								numericInput("vari.num.dose",
 									"Dose (mg):",
 									min = 5,
@@ -169,17 +171,17 @@ body <-
 							),	# column
 							column(7,
 								style = "padding-top:26px",
-								actionButton("next.numeric",strong("Administer numeric dose"),style = "color:#FFFFFF; border-color:#FFFFFF; background-color:#F39C12; width:200px; text-align:center; font-size:16px")
+								actionButton("next.numeric",strong("Administer this dose"),style = "color:#FFFFFF; border-color:#FFFFFF; background-color:#F39C12; width:200px; text-align:center; font-size:18px")
 							)	# column
 						)	# fluidRow
 					),	# conditionalPanel
 					checkboxInput("slider_dose",
-						strong("Explore range of mg/kg doses using slider",style = "color:#00A65A; font-size:16px"),
+						strong("Explore range of mg/kg doses using slider",style = "color:#00A65A; font-size:18px"),
 						value = FALSE
 					),	# checkboxInput
 					conditionalPanel(condition = "input.slider_dose",
 						div(
-							style = "font-size:16px",
+							style = "font-size:18px",
 							sliderInput("vari.dose",
 								"Dose (mg/kg):",
 								min = 3,
@@ -190,27 +192,27 @@ body <-
 						),	# div
 						fluidRow(
 							column(5,
-								style = "color:#00A65A; padding-top:6px; font-size:16px",
+								style = "color:#00A65A; padding-top:6px; font-size:18px",
 								strong(textOutput("slider.amt"))
 							),	# column
 							column(7,
-								actionButton("next.slider",strong("Administer slider dose"),style = "color:#FFFFFF; border-color:#FFFFFF; background-color:#00A65A; width:200px; text-align:center; font-size:16px")
+								actionButton("next.slider",strong("Administer this dose"),style = "color:#FFFFFF; border-color:#FFFFFF; background-color:#00A65A; width:200px; text-align:center; font-size:18px")
 							)	# column
 						) # fluidRow
 					),	# conditionalPanel
 					checkboxInput("optim_dose",
-						strong("Calculate best dose",style = "color:#605CA8; font-size:16px"),
+						strong("Calculate best dose",style = "color:#605CA8; font-size:18px"),
 						value = FALSE
 					),	# checkboxInput
 					conditionalPanel(condition = "input.optim_dose",
 						fluidRow(
 							column(5,
-								style = "color:#605CA8; font-size:16px",
+								style = "color:#605CA8; font-size:18px",
 								strong(textOutput("optimised.dose")),
 								strong(textOutput("optimised.amt"))
 							),	# column
 							column(7,
-								actionButton("next.optim",strong("Administer best dose"),style = "color:#FFFFFF; border-color:#FFFFFF; background-color:#605CA8; width:200px; text-align:center; font-size:16px")
+								actionButton("next.optim",strong("Administer this dose"),style = "color:#FFFFFF; border-color:#FFFFFF; background-color:#605CA8; width:200px; text-align:center; font-size:18px")
 							)	# column
 						)	# fluidRow
 					),	# conditionalPanel

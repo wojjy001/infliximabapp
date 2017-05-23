@@ -37,28 +37,28 @@ shinyServer(function(input,output,session) {
 				fluidRow(
 					column(1,
 						style = "width:200px",
-						numericInput(paste0("one",i),
+						numericInput(paste0("time",i),
 							label = NA,
 							value = df[i,1]
 						)	# input$one-i
 					),	# column
 					column(2,
 						style = "width:200px;",
-						numericInput(paste0("two",i),
+						numericInput(paste0("wt",i),
 							label = NA,
 							value = df[i,2]
 						)	# input$two-i
 					),	# column
 					column(2,
 						style = "width:200px;",
-						numericInput(paste0("three",i),
+						numericInput(paste0("alb",i),
 							label = NA,
 							value = df[i,3]
 						)	# input$three-i
 					),	# column
 					column(2,
 						style = "width:200px;",
-						selectInput(paste0("four",i),
+						selectInput(paste0("ada",i),
 							label = NA,
 							choices = list("Not present" = 0,"Present" = 1),
 							selected = df[i,4]
@@ -66,18 +66,18 @@ shinyServer(function(input,output,session) {
 					),	# column
 					column(2,
 						style = "width:200px;",
-						numericInput(paste0("five",i),
+						numericInput(paste0("amt",i),
 							label = NA,
 							value = df[i,5]
 						)	# input$five-i
 					),	# column
 					column(1,
-						style = "width:100px; font-size:16px; color:#000000",
+						style = "width:150px; font-size:16px; color:#000000",
 						strong(mgkg.dose.i.text)
 					),
 					column(2,
 						style = "width:200px;",
-						numericInput(paste0("six",i),
+						numericInput(paste0("obs",i),
 							label = NA,
 							value = df[i,6]
 						)	# input$six-i
@@ -95,12 +95,12 @@ shinyServer(function(input,output,session) {
 		values$n <- values$n + 1
 		values$df <- ldply(seq_len(values$n), function(i) {
 			data.frame(
-				"time" = get("input")[[paste0("one",i)]],
-				"wt" = get("input")[[paste0("two",i)]],
-				"alb" = get("input")[[paste0("three",i)]],
-				"ada" = get("input")[[paste0("four",i)]],
-				"amt" = get("input")[[paste0("five",i)]],
-				"obs" = get("input")[[paste0("six",i)]]
+				"time" = get("input")[[paste0("time",i)]],
+				"wt" = get("input")[[paste0("wt",i)]],
+				"alb" = get("input")[[paste0("alb",i)]],
+				"ada" = get("input")[[paste0("ada",i)]],
+				"amt" = get("input")[[paste0("amt",i)]],
+				"obs" = get("input")[[paste0("obs",i)]]
 			)	# data.frame
 		})	# ldply
 	})	# observeEvent for add
@@ -111,12 +111,12 @@ shinyServer(function(input,output,session) {
 		}	# if
 		values$df <- ldply(seq_len(values$n), function(i) {
 			data.frame(
-				"time" = get("input")[[paste0("one",i)]],
-				"wt" = get("input")[[paste0("two",i)]],
-				"alb" = get("input")[[paste0("three",i)]],
-				"ada" = get("input")[[paste0("four",i)]],
-				"amt" = get("input")[[paste0("five",i)]],
-				"obs" = get("input")[[paste0("six",i)]]
+				"time" = get("input")[[paste0("time",i)]],
+				"wt" = get("input")[[paste0("wt",i)]],
+				"alb" = get("input")[[paste0("alb",i)]],
+				"ada" = get("input")[[paste0("ada",i)]],
+				"amt" = get("input")[[paste0("amt",i)]],
+				"obs" = get("input")[[paste0("obs",i)]]
 			)	# data.frame
 		})	# ldply
 	})	# observeEvent for remove
@@ -124,12 +124,12 @@ shinyServer(function(input,output,session) {
 	observeEvent(input$save, {	# Save current state
 		values$df <- ldply(seq_len(values$n), function(i) {
 			data.frame(
-				"time" = get("input")[[paste0("one",i)]],
-				"wt" = get("input")[[paste0("two",i)]],
-				"alb" = get("input")[[paste0("three",i)]],
-				"ada" = get("input")[[paste0("four",i)]],
-				"amt" = get("input")[[paste0("five",i)]],
-				"obs" = get("input")[[paste0("six",i)]]
+				"time" = get("input")[[paste0("time",i)]],
+				"wt" = get("input")[[paste0("wt",i)]],
+				"alb" = get("input")[[paste0("alb",i)]],
+				"ada" = get("input")[[paste0("ada",i)]],
+				"amt" = get("input")[[paste0("amt",i)]],
+				"obs" = get("input")[[paste0("obs",i)]]
 			)	# data.frame
 		})	# ldply
 		values$df <- values$df[with(values$df,order(values$df["time"])),]
@@ -150,7 +150,7 @@ shinyServer(function(input,output,session) {
 	Rinput.sim.data <- eventReactive(input$save, {
 		input.values <- values$df	# Assign reactive input values to a new object
 		input.values$ada <- as.numeric(levels(input.values$ada))[input.values$ada]
-		last.input.time <- max(input.values$time)	# last time in data frame
+		last.input.time <- max(input.values$time[is.na(input.values$time) == FALSE])	# last time in data frame
 		if (is.na(input.values$amt[input.values$time == last.input.time]) == TRUE) {
 			last.time <- last.input.time
 		} else {
@@ -508,11 +508,11 @@ shinyServer(function(input,output,session) {
 			plotobj.pred <- NULL
 			plotobj.pred <- ggplot()
 			plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-				data = sim.data[sim.data$ID == 1,],size = 1,
+				data = sim.data[sim.data$ID == 1,],size = 2,
 				colour = "#3C8DBC")	# shinyblue
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = sim.data[sim.data$ID == 2,],
-					linetype = "dashed",size = 1,
+					linetype = "dashed",size = 2,
 					colour = "#3C8DBC")	# shinyblue
 			if (input$pop_ci == TRUE) {
 				plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
@@ -523,11 +523,11 @@ shinyServer(function(input,output,session) {
 			if (input$label_dose == TRUE) {
 				label.data <- Rlabel.data()
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-					data = label.data[label.data$ID == 1,],size = 1,
+					data = label.data[label.data$ID == 1,],size = 2,
 					colour = "#EE3B3B")	# firebrick4
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = label.data[label.data$ID == 2,],
-					linetype = "dashed",size = 1,
+					linetype = "dashed",size = 2,
 					colour = "#EE3B3B")	# firebrick4
 				if (input$pop_ci == TRUE) {
 					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
@@ -539,11 +539,11 @@ shinyServer(function(input,output,session) {
 			if (input$numeric_dose == TRUE) {
 				numeric.data <- Rnumeric.data()
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-					data = numeric.data[numeric.data$ID == 1,],size = 1,
+					data = numeric.data[numeric.data$ID == 1,],size = 2,
 					colour = "#F39C12")	# darkorange3
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = numeric.data[numeric.data$ID == 2,],
-					linetype = "dashed",size = 1,
+					linetype = "dashed",size = 2,
 					colour = "#F39C12")	# darkorange3
 				if (input$pop_ci == TRUE) {
 					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
@@ -555,11 +555,11 @@ shinyServer(function(input,output,session) {
 			if (input$slider_dose == TRUE) {
 				slider.data <- Rslider.data()
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-					data = slider.data[slider.data$ID == 1,],size = 1,
+					data = slider.data[slider.data$ID == 1,],size = 2,
 					colour = "#00A65A")	# springgreen4
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = slider.data[slider.data$ID == 2,],
-					linetype = "dashed",size = 1,
+					linetype = "dashed",size = 2,
 					colour = "#00A65A")	# springgreen4
 				if (input$pop_ci == TRUE) {
 					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
@@ -571,11 +571,11 @@ shinyServer(function(input,output,session) {
 			if (input$optim_dose == TRUE) {
 				optim.data <- Roptim.data()
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-					data = optim.data[optim.data$ID == 1,],size = 1,
+					data = optim.data[optim.data$ID == 1,],size = 2,
 					colour = "#605CA8")	# darkviolet
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = optim.data[optim.data$ID == 2,],
-					linetype = "dashed",size = 1,
+					linetype = "dashed",size = 2,
 					colour = "#605CA8")	# darkviolet
 				if (input$pop_ci == TRUE) {
 					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
@@ -587,12 +587,13 @@ shinyServer(function(input,output,session) {
 			plotobj.pred <- plotobj.pred + geom_point(aes(x = time,y = obs),
 				data = values$df[is.na(values$df$obs) == FALSE,],size = 4)
 			plotobj.pred <- plotobj.pred + geom_hline(aes(yintercept = input$target.trough),
-				linetype = "dashed")
-			plotobj.pred <- plotobj.pred + scale_y_log10("Infliximab Concentration (mg/L)\n")
+				linetype = "dashed",size = 2)
+			plotobj.pred <- plotobj.pred + scale_y_log10("Infliximab Concentration (mg/L)\n",breaks = c(0.1,0.3,1,3,10,30,100,300),
+			labels = c(0.1,0.3,1,3,10,30,100,300))
 			plotobj.pred <- plotobj.pred + scale_x_continuous("\nTime since first dose (days)",
 				breaks = seq(from = 0,to = max(input$plot.times),by = 14),
 				lim = input$plot.times)
-			suppressWarnings(print(plotobj.pred))
+			suppressMessages(suppressWarnings(print(plotobj.pred)))
 		}	# if
 	})	# renderPlot
 

@@ -10,10 +10,9 @@
   library(grid)   #Plotting
   library(plyr)  # Split and rearrange data, ddply function
   library(dplyr)  # New plyr
-  library(rmarkdown)  # Generate report to a Word, pdf or HTML document
   library(mrgsolve) # Metrum differential equation solver for pharmacometrics
 # Define a custom ggplot2 theme
-  theme_bw2 <- theme_set(theme_bw(base_size = 16))
+  theme_bw2 <- theme_set(theme_bw(base_size = 20))
 # Source model code
   source("model.R")
 	# Pull out the OMEGAs from "model.R" and convert to SDs
@@ -87,8 +86,22 @@
 # Extrapolate covariate values between measured time-points
 # Linear extrapolation for continuous covariates
 	lin.cov.extrap <- function(times,time,last.time,cov) {
-		cov.times <- c(time[is.na(cov) == FALSE & cov != 0],last.time)
-		cov.values <- c(cov[time %in% cov.times],tail(cov[time %in% cov.times],1))
+		cov.times <- unique(c(time[is.na(time) == FALSE],last.time))
+		prev.nonna.cov <- cov[1]
+		for (i in 1:length(cov)) {
+			if (is.na(cov[i]) == TRUE) {
+				cov[i] <- prev.nonna.cov
+			}
+			if (is.na(cov[i]) == FALSE) {
+				prev.nonna.cov <- cov[i]
+			}
+			cov
+		}
+		if (length(cov) != length(cov.times)) {
+			cov.values <- c(cov,cov[length(cov)])
+		} else {
+			cov.values <- cov
+		}
 		cov.func <- approxfun(cov.times,cov.values,method = "linear")
 		cov.func(times)
 	}

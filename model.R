@@ -9,7 +9,8 @@ $SET			atol = 1e-8, rtol = 1e-8
 
 $INIT			// Initial conditions for PK compartments
 					CENT = 0,
-					PERI = 0
+					PERI = 0,
+					AUC = 0
 
 $PARAM		// Population parameters
 					POPCL = 0.294,
@@ -27,7 +28,7 @@ $PARAM		// Population parameters
 
 					// Covariate values for simulation
 					WT = 70,	// Weight (kg)
-					ALB = 3,	// Albumin (g/dL)
+					ALB = 4,	// Albumin (g/dL)
 					ADA = 0,	// Presence of anti-drug antibodies
 					target = 3,	// Target trough concentration (mg/L)
 
@@ -75,6 +76,10 @@ $MAIN			// Infusion duration
 $ODE			// Individual differential equations
 					dxdt_CENT = -K12*CENT +K21*PERI -K10*CENT;
 					dxdt_PERI = K12*CENT -K21*PERI;
+
+					// Area under the curve
+					double CP = CENT/V1;	// Concentration in central compartment
+					dxdt_AUC = CP;
 
 $TABLE		// Calculate concentrations in the central compartment
 					double IPRE = CENT/V1;
