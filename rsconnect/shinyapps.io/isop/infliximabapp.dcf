@@ -1,0 +1,11 @@
+name: infliximabapp
+title: infliximabapp
+account: isop
+server: shinyapps.io
+appId: 182844
+bundleId: 837194
+url: https://isop.shinyapps.io/infliximabapp/
+when: 1495521653.42618
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .Rapp.history|demo_plots.R|LICENSE|plot1.png|plot2.png|plot3.png|plot4.png|plot5.png|plot6.png|plot7.png|README.md|runApp.R
