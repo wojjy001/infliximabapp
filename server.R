@@ -414,22 +414,22 @@ shinyServer(function(input,output,session) {
 	# Populate the last "infliximab amount" box with the chosen dose value
 	observeEvent(input$next.label, {
 		n <- values$n
-		updateNumericInput(session,inputId = paste0("five",n),value = round(Rlabel.data()$amt[1]))
+		updateNumericInput(session,inputId = paste0("amt",n),value = round(Rlabel.data()$amt[1]))
 	})	# observeEvent
 
 	observeEvent(input$next.numeric, {
 		n <- values$n
-		updateNumericInput(session,inputId = paste0("five",n),value = round(Rnumeric.data()$amt[1]))
+		updateNumericInput(session,inputId = paste0("amt",n),value = round(Rnumeric.data()$amt[1]))
 	})	# observeEvent
 
 	observeEvent(input$next.slider, {
 		n <- values$n
-		updateNumericInput(session,inputId = paste0("five",n),value = round(Rslider.data()$amt[1]))
+		updateNumericInput(session,inputId = paste0("amt",n),value = round(Rslider.data()$amt[1]))
 	})	# observeEvent
 
 	observeEvent(input$next.optim, {
 		n <- values$n
-		updateNumericInput(session,inputId = paste0("five",n),value = round(Roptim.data()$amt[1]))
+		updateNumericInput(session,inputId = paste0("amt",n),value = round(Roptim.data()$amt[1]))
 	})	# observeEvent
 
 	# Reset the checkboxInput values if other doses are chosen or the "save" button is pressed
