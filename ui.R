@@ -97,13 +97,14 @@ body <-
 					 	style = "font-size:18px; color:#000000",
 						align = "center",
 					 	fluidRow(
-						 	column(4,
+						 	column(3,
 							 	p("Solid line = individual predicted",
 							 	style = "padding-top:11px")
 						 	),	# column
-						 	column(3,
-							 	p("Dashed line = population typical",
-							 	style = "padding-top:11px")
+						 	column(4,
+							 	checkboxInput("pop_typ",
+								"Show dashed line = population average",
+								value = FALSE)
 						 	),	# column
 						 	column(5,
 							 	checkboxInput("pop_ci",

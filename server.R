@@ -510,10 +510,12 @@ shinyServer(function(input,output,session) {
 			plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 				data = sim.data[sim.data$ID == 1,],size = 2,
 				colour = "#3C8DBC")	# shinyblue
+			if (input$pop_typ == TRUE) {
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = sim.data[sim.data$ID == 2,],
 					linetype = "dashed",size = 2,
 					colour = "#3C8DBC")	# shinyblue
+			}
 			if (input$pop_ci == TRUE) {
 				plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
 					data = var.sim.data,
@@ -525,10 +527,12 @@ shinyServer(function(input,output,session) {
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = label.data[label.data$ID == 1,],size = 2,
 					colour = "#EE3B3B")	# firebrick4
-				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-					data = label.data[label.data$ID == 2,],
-					linetype = "dashed",size = 2,
-					colour = "#EE3B3B")	# firebrick4
+				if (input$pop_typ == TRUE) {
+					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+						data = label.data[label.data$ID == 2,],
+						linetype = "dashed",size = 2,
+						colour = "#EE3B3B")	# firebrick4
+				}
 				if (input$pop_ci == TRUE) {
 					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
 						data = label.data[label.data$ID > 2,],
@@ -541,10 +545,12 @@ shinyServer(function(input,output,session) {
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = numeric.data[numeric.data$ID == 1,],size = 2,
 					colour = "#F39C12")	# darkorange3
-				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-					data = numeric.data[numeric.data$ID == 2,],
-					linetype = "dashed",size = 2,
-					colour = "#F39C12")	# darkorange3
+				if (input$pop_typ == TRUE) {
+					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+						data = numeric.data[numeric.data$ID == 2,],
+						linetype = "dashed",size = 2,
+						colour = "#F39C12")	# darkorange3
+				}
 				if (input$pop_ci == TRUE) {
 					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
 						data = numeric.data[numeric.data$ID > 2,],
@@ -557,10 +563,12 @@ shinyServer(function(input,output,session) {
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = slider.data[slider.data$ID == 1,],size = 2,
 					colour = "#00A65A")	# springgreen4
-				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-					data = slider.data[slider.data$ID == 2,],
-					linetype = "dashed",size = 2,
-					colour = "#00A65A")	# springgreen4
+				if (input$pop_typ == TRUE) {
+					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+						data = slider.data[slider.data$ID == 2,],
+						linetype = "dashed",size = 2,
+						colour = "#00A65A")	# springgreen4
+				}
 				if (input$pop_ci == TRUE) {
 					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
 						data = slider.data[slider.data$ID > 2,],
@@ -573,10 +581,12 @@ shinyServer(function(input,output,session) {
 				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
 					data = optim.data[optim.data$ID == 1,],size = 2,
 					colour = "#605CA8")	# darkviolet
-				plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
-					data = optim.data[optim.data$ID == 2,],
-					linetype = "dashed",size = 2,
-					colour = "#605CA8")	# darkviolet
+				if (input$pop_typ == TRUE) {
+					plotobj.pred <- plotobj.pred + geom_line(aes(x = time,y = IPRE),
+						data = optim.data[optim.data$ID == 2,],
+						linetype = "dashed",size = 2,
+						colour = "#605CA8")	# darkviolet
+				}
 				if (input$pop_ci == TRUE) {
 					plotobj.pred <- plotobj.pred + stat_summary(aes(x = time,y = IPRE),
 						data = optim.data[optim.data$ID > 2,],
