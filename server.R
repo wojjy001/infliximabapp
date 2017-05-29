@@ -595,7 +595,7 @@ shinyServer(function(input,output,session) {
 				}
 			}
 			plotobj.pred <- plotobj.pred + geom_point(aes(x = time,y = obs),
-				data = values$df[is.na(values$df$obs) == FALSE,],size = 4)
+				data = values$df[is.na(values$df$obs) == FALSE,],size = 6)
 			plotobj.pred <- plotobj.pred + geom_hline(aes(yintercept = input$target.trough),
 				linetype = "dashed",size = 2)
 			plotobj.pred <- plotobj.pred + scale_y_log10("Infliximab Concentration (mg/L)\n",breaks = c(0.1,0.3,1,3,10,30,100,300),
